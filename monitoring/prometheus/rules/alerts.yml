@@ -1,0 +1,97 @@
+groups:
+  - name: qwen_api_alerts
+    rules:
+      # Performance Alerts
+      - alert: LowTokenGenerationRate
+        expr: rate(llm_tokens_generated_total[5m]) < 30
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Low token generation rate"
+          description: "Token generation rate is below 30 tokens/second for 2 minutes"
+          
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, sum(rate(llm_request_latency_seconds_bucket[5m])) by (le, endpoint)) > 5
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High request latency"
+          description: "95th percentile of request latency is above 5 seconds for 2 minutes"
+      
+      # Rate Limit Alerts
+      - alert: RateLimitExceeded
+        expr: sum(rate(llm_requests_total{status="rate_limited"}[5m])) by (api_key_id) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Rate limit exceeded"
+          description: "API key {{ $labels.api_key_id }} is consistently hitting rate limits"
+      
+      # Availability Alerts
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service is down"
+          description: "{{ $labels.job }} service is down"
+      
+      - alert: HighErrorRate
+        expr: rate(llm_requests_total{status="error"}[5m]) / rate(llm_requests_total[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate"
+          description: "Error rate is above 5% for 2 minutes"
+      
+      # Resource Alerts
+      - alert: HighGPUUtilization
+        expr: nvidia_gpu_utilization > 95
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High GPU utilization"
+          description: "GPU utilization is above 95% for 5 minutes"
+      
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is above 90% for 5 minutes"
+      
+      - alert: HighDiskUsage
+        expr: node_filesystem_avail_bytes / node_filesystem_size_bytes * 100 < 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High disk usage"
+          description: "Disk usage is above 90% for 5 minutes"
+      
+      # Uptime Alerts
+      - alert: UptimeBelow99
+        expr: avg_over_time(up[30d]) * 100 < 99
+        labels:
+          severity: warning
+        annotations:
+          summary: "Uptime below 99%"
+          description: "Service uptime is below 99% over the last 30 days"
+      
+      # Customer-specific Alerts
+      - alert: CustomerHighUsage
+        expr: sum(rate(llm_tokens_processed_total[1h])) by (api_key_id) > 10000
+        for: 10m
+        labels:
+          severity: info
+        annotations:
+          summary: "High customer usage"
+          description: "Customer with API key {{ $labels.api_key_id }} has high token usage"
