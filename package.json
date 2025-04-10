@@ -1,0 +1,25 @@
+{
+  "name": "bountycoder",
+  "version": "1.0.0",
+  "description": "admin dashboard for api llm api service",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm install"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TerminallyLazy/bountyCoder.git"
+  },
+  "keywords": [
+    "qwen",
+    "llm",
+    "coder",
+    "served"
+  ],
+  "author": "lazy",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/TerminallyLazy/bountyCoder/issues"
+  },
+  "homepage": "https://github.com/TerminallyLazy/bountyCoder#readme"
+}
