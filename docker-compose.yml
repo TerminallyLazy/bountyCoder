@@ -1,0 +1,130 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:14
+    container_name: bountycoder-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: bountycoder
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: always
+    networks:
+      - bountycoder-network
+
+  # Redis for rate limiting
+  redis:
+    image: redis:alpine
+    container_name: bountycoder-redis
+    ports:
+      - "6379:6379"
+    restart: always
+    networks:
+      - bountycoder-network
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: bountycoder-backend
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/bountycoder
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=your_jwt_secret_here
+      - PORT=5000
+    ports:
+      - "5000:5000"
+    restart: always
+    networks:
+      - bountycoder-network
+
+  # Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: bountycoder-frontend
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+    restart: always
+    networks:
+      - bountycoder-network
+
+  # LLM Service (Qwen 32B)
+  llm-service:
+    build:
+      context: ./llm-service
+      dockerfile: Dockerfile
+    container_name: bountycoder-llm
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    environment:
+      - MODEL_NAME=Qwen/Qwen-32B-Coder
+      - MAX_BATCH_SIZE=32
+      - MAX_CONCURRENT_REQUESTS=16
+    ports:
+      - "8000:8000"
+    restart: always
+    networks:
+      - bountycoder-network
+
+  # Load Balancer for LLM Service
+  llm-load-balancer:
+    image: nginx:alpine
+    container_name: bountycoder-lb
+    depends_on:
+      - llm-service
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    ports:
+      - "8080:80"
+    restart: always
+    networks:
+      - bountycoder-network
+
+  # Monitoring
+  prometheus:
+    image: prom/prometheus
+    container_name: bountycoder-prometheus
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    restart: always
+    networks:
+      - bountycoder-network
+
+  grafana:
+    image: grafana/grafana
+    container_name: bountycoder-grafana
+    depends_on:
+      - prometheus
+    ports:
+      - "3000:3000"
+    restart: always
+    networks:
+      - bountycoder-network
+
+volumes:
+  postgres_data:
+
+networks:
+  bountycoder-network:
+    driver: bridge

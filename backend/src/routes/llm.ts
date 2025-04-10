@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import { prisma } from '../app';
 import { authenticate } from '../middleware/auth';
 import { z } from 'zod';
+import { generateText, LLMRequestParams, checkRateLimit } from '../services/llm';
 
 const router = express.Router();
 
@@ -36,24 +37,23 @@ router.post('/generate', authenticate, async (req: Request, res: Response) => {
       return res.status(403).json({ message: 'API key is inactive' });
     }
     
-    const response = {
-      id: `gen_${Date.now()}`,
-      object: 'text_completion',
-      created: Math.floor(Date.now() / 1000),
-      model: 'qwen-32b-coder',
-      choices: [
-        {
-          text: `// Here's a function to ${validatedData.prompt}\n\nfunction example() {\n  console.log("This is a mock response");\n  return true;\n}`,
-          index: 0,
-          finish_reason: 'stop',
-        },
-      ],
-      usage: {
-        prompt_tokens: validatedData.prompt.length,
-        completion_tokens: 100,
-        total_tokens: validatedData.prompt.length + 100,
-      },
+    const withinLimits = await checkRateLimit(apiKeyId);
+    if (!withinLimits) {
+      return res.status(429).json({ 
+        message: 'Rate limit exceeded',
+        retry_after: 60 // Retry after 60 seconds
+      });
+    }
+    
+    const requestParams: LLMRequestParams = {
+      prompt: validatedData.prompt,
+      maxTokens: validatedData.maxTokens,
+      temperature: validatedData.temperature,
+      topP: validatedData.topP,
+      stop: validatedData.stop
     };
+    
+    const response = await generateText(requestParams, apiKeyId);
     
     await prisma.apiKey.update({
       where: { id: apiKeyId },
@@ -62,20 +62,19 @@ router.post('/generate', authenticate, async (req: Request, res: Response) => {
       },
     });
     
-    await prisma.usage.create({
-      data: {
-        apiKeyId,
-        userId: apiKey.userId,
-        tokens: response.usage.total_tokens,
-        endpoint: 'generate',
-      },
-    });
-    
     return res.status(200).json(response);
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ message: 'Validation error', errors: error.errors });
     }
+    
+    if (error instanceof Error && error.message === 'Rate limit exceeded') {
+      return res.status(429).json({ 
+        message: 'Rate limit exceeded',
+        retry_after: 60 // Retry after 60 seconds
+      });
+    }
+    
     console.error('LLM generate error:', error);
     return res.status(500).json({ message: 'Internal server error' });
   }
