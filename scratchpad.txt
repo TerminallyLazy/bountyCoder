@@ -1,16 +1,71 @@
-# Enhancements Made to Admin Dashboard
+# LLM Test Infrastructure Setup
 
-## Button Improvements
-- Added subtle lift effect on hover (translateY)
-- Enhanced glow and shadow effects for dark theme
-- Added pulse animation for primary buttons
-- Special '.action-button' class with gradient backgrounds
-- Added smooth transitions for all state changes
+## Current Status
+- Prometheus and Grafana successfully set up
+- Grafana running on port 4000
+- Dashboard for LLM service monitoring configured
 
-## Card Improvements
-- Enhanced hover effects with z-index and transform
-- Added specific '.dashboard-card' class with:
-  - Gradient backgrounds based on theme
-  - Border highlight effects in dark theme
-  - Smooth transition animations
-  - Drop shadow variations for both themes
+## To Do
+- Set up GPU infrastructure for testing
+  - Options: Runpod or Lambda Labs
+- Download and deploy smaller LLM model for testing
+  - Candidates: Phi-2, TinyLlama, RWKV-4 small, GPT-2 Small
+- Configure LLM service with Prometheus metrics
+- Verify metrics appear in Grafana dashboard
+- Test API endpoints and performance
+
+## Notes
+- Use smaller models initially to verify the full pipeline works
+- Need to create authentication keys for cloud GPU services
+- Should test both inference and fine-tuning workflows
+- Will need to modify the dashboard for specific metrics the LLM service provides
+
+# Testing the Model API from Jupyter
+
+## Python Test Code
+```python
+import requests
+import json
+
+# Replace with your actual llm-service URL
+# From docker-compose, the service is exposed on port 8000 or through the load balancer on 8080
+API_URL = "http://localhost:8000/generate"  # Try different URLs as needed
+
+# Test request
+payload = {
+    "prompt": "Write a function to calculate fibonacci numbers",
+    "max_tokens": 512,
+    "temperature": 0.7,
+    "top_p": 1.0,
+    "api_key_id": "test-key"  # Required by your API
+}
+
+# Send the request
+try:
+    response = requests.post(API_URL, json=payload)
+    print(f"Status code: {response.status_code}")
+    print(f"Response: {json.dumps(response.json(), indent=2)}")
+except Exception as e:
+    print(f"Error: {e}")
+
+# Health check
+try:
+    health_response = requests.get("http://localhost:8000/health")
+    print(f"Health check status: {health_response.status_code}")
+    print(f"Health check response: {health_response.json()}")
+except Exception as e:
+    print(f"Health check error: {e}")
+```
+
+## Curl command for testing (alternative)
+```bash
+curl -X POST http://localhost:8000/generate \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "Write a function to calculate fibonacci numbers", "max_tokens": 512, "temperature": 0.7, "top_p": 1.0, "api_key_id": "test-key"}'
+```
+
+## RunPod URL notes
+If testing from your RunPod Jupyter notebook, you may need to adjust the URL to:
+1. Use 127.0.0.1 instead of localhost
+2. Use the actual port from your RunPod container mappings
+3. If you're trying to access the service from outside RunPod, you'll need to find the exposed URL

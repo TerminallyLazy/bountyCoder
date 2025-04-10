@@ -1,115 +1,61 @@
-# BountyCoder: Admin Dashboard for Qwen 32B API Service
+# LLM Service with Prometheus Monitoring
 
-This repository contains the admin dashboard web application for hosting and managing a Qwen 32B coder API service.
+This project implements a simple LLM API service with Prometheus monitoring, designed to work with Grafana dashboards for visualization.
 
 ## Features
 
-- API key management for individual customers
-- Minimum performance of 30 tokens/second
-- Custom rate limits per customer
-- Scalability up to 10,000 users
-- 3-month uptime guarantee
-- Cloud GPU provider integration
+- FastAPI-based LLM inference API
+- Prometheus metrics for monitoring
+- Grafana dashboard integration
+- GPU utilization tracking
+- Support for small models like Phi-2
 
-## Project Structure
+## Quick Start on RunPod
 
-- **frontend/**: React.js frontend application
-- **backend/**: Node.js Express backend API
-- **llm-service/**: Qwen 32B model service
-- **monitoring/**: Prometheus and Grafana monitoring
-- **cloud/**: Cloud GPU provider configurations
-- **tests/**: Testing and optimization tools
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 18+
-- PostgreSQL
-- Docker (for LLM service)
-- NVIDIA GPU (for local LLM service)
-
-### Installation
-
-1. Clone the repository
+1. Launch a RunPod instance with GPU (see setup instructions below)
+2. Clone this repository
+3. Run the setup script:
    ```bash
-   git clone https://github.com/TerminallyLazy/bountyCoder.git
-   cd bountyCoder
+   chmod +x scripts/setup_runpod.sh
+   ./scripts/setup_runpod.sh
    ```
-
-2. Install backend dependencies
+4. Start the LLM service:
    ```bash
-   cd backend
-   npm install
+   python -m app.main
    ```
-
-3. Set up the database
+5. Load a model:
    ```bash
-   npm run migrate
+   curl -X POST http://localhost:8080/load -H "Content-Type: application/json" -d '{"model_name_or_path": "./phi-2"}'
    ```
-
-4. Install frontend dependencies
+6. Generate text:
    ```bash
-   cd ../frontend
-   npm install
+   curl -X POST http://localhost:8080/generate -H "Content-Type: application/json" -d '{"prompt": "Hello, world!"}'
    ```
-
-### Running the Application
-
-1. Start the backend
-   ```bash
-   cd backend
-   npm run dev
-   ```
-
-2. Start the frontend (runs on port 3030)
-   ```bash
-   cd frontend
-   npm run dev
-   ```
-
-3. Access the dashboard at http://localhost:3030
-
-## Configuration
-
-### Frontend
-
-The frontend application runs on port 3030 by default. You can modify this by creating a `.env` file in the frontend directory:
-
-```
-PORT=3030
-```
-
-### Backend
-
-Configure the backend by modifying the `.env` file in the backend directory:
-
-```
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/bountycoder"
-```
-
-## Deployment
-
-For production deployment, follow the instructions in the [Cloud Deployment Guide](cloud/DEPLOYMENT.md).
 
 ## Monitoring
 
-The monitoring system uses Prometheus and Grafana to track:
-- Token generation rate
-- API key usage
-- System performance
-- Custom rate limits
+- Prometheus metrics are exposed on port 8000
+- Connect your Grafana instance to the Prometheus server
+- Import the dashboard from `monitoring/grafana/provisioning/dashboards/json/llm-service-dashboard.json`
 
-## Testing
+## Metrics
 
-Use the testing tools in the `tests/` directory to verify:
-- Performance (30 tokens/second)
-- Scalability (up to 10,000 users)
-- Custom rate limits
-- System reliability
+- `llm_requests_total` - Total number of requests (success/error)
+- `llm_request_latency_seconds` - Request latency in seconds
+- `llm_tokens_generated_total` - Total number of tokens generated
+- `nvidia_gpu_utilization` - GPU utilization percentage
 
-## License
+## RunPod Setup Instructions
 
-This project is proprietary and confidential.
+1. Create a RunPod account at [runpod.io](https://www.runpod.io)
+2. Add a payment method
+3. Deploy a GPU pod (RTX 4090 or A10 recommended)
+4. Select the PyTorch template
+5. Connect to your pod via SSH or JupyterLab
+6. Follow the Quick Start instructions above
 
+## API Endpoints
 
+- `POST /generate` - Generate text from a prompt
+- `POST /load` - Load a model by name or path
+- `GET /health` - Check if the service is healthy

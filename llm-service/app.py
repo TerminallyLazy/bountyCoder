@@ -25,19 +25,67 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-redis_client = redis.Redis(
-    host=os.getenv("REDIS_HOST", "localhost"),
-    port=int(os.getenv("REDIS_PORT", 6379)),
-    db=0,
-    decode_responses=True,
-)
+# Try to connect to Redis, use a mock if it fails
+try:
+    redis_client = redis.Redis(
+        host=os.getenv("REDIS_HOST", "localhost"),
+        port=int(os.getenv("REDIS_PORT", 6379)),
+        db=0,
+        decode_responses=True,
+        socket_connect_timeout=1  # Short timeout for quick failure
+    )
+    # Test connection
+    redis_client.ping()
+    logger.info("Connected to Redis successfully")
+except Exception as e:
+    logger.warning(f"Failed to connect to Redis: {str(e)}. Using mock Redis client.")
+    # Create a simple mock Redis client
+    class MockRedis:
+        def __init__(self):
+            self.data = {}
+            self.expirations = {}
+            
+        def get(self, key):
+            return self.data.get(key)
+            
+        def set(self, key, value, ex=None):
+            self.data[key] = value
+            if ex:
+                self.expirations[key] = time.time() + ex
+            return True
+            
+        def incr(self, key):
+            if key not in self.data:
+                self.data[key] = 1
+            else:
+                self.data[key] = int(self.data[key]) + 1
+            return self.data[key]
+            
+        def expire(self, key, time_seconds):
+            self.expirations[key] = time.time() + time_seconds
+            return True
+            
+        def incrby(self, key, amount):
+            if key not in self.data:
+                self.data[key] = amount
+            else:
+                self.data[key] = int(self.data[key]) + amount
+            return self.data[key]
+    
+    redis_client = MockRedis()
+    logger.info("Using mock Redis client")
+
+# Start Prometheus metrics server on port 8006
+try:
+    start_http_server(8006)
+    logger.info("Started Prometheus metrics server on port 8006")
+except Exception as e:
+    logger.warning(f"Failed to start Prometheus metrics server: {str(e)}")
 
 REQUESTS = Counter("llm_requests_total", "Total number of requests", ["endpoint", "status"])
 LATENCY = Histogram("llm_request_latency_seconds", "Request latency in seconds", ["endpoint"])
 TOKENS_GENERATED = Counter("llm_tokens_generated_total", "Total number of tokens generated")
 TOKENS_PROCESSED = Counter("llm_tokens_processed_total", "Total number of tokens processed")
-
-start_http_server(8001)
 
 MODEL_NAME = os.getenv("MODEL_NAME", "Qwen/Qwen-32B-Coder")
 MAX_BATCH_SIZE = int(os.getenv("MAX_BATCH_SIZE", 32))
@@ -178,4 +226,5 @@ async def set_rate_limit(api_key_id: str, limit: int):
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
-    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
+    # Disable reload mode to avoid file watching issues in RunPod
+    uvicorn.run("app:app", host="0.0.0.0", port=8007, reload=False, log_level="info")

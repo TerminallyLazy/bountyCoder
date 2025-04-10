@@ -1,0 +1,73 @@
+# Copy this into a Jupyter notebook cell in RunPod to test your LLM service directly
+
+import sys
+import os
+import json
+import asyncio
+from fastapi import BackgroundTasks
+from IPython.display import display, JSON, Markdown
+
+# Path to your LLM service - adjust this to match your actual path
+service_dir = "/home/lazy/Projects/bountyCoder/llm-service"
+sys.path.append(service_dir)
+
+try:
+    from app import app, generate, GenerateRequest
+    
+    print("Successfully imported the LLM service app!")
+    
+    async def test_llm_service(prompt="Write a function to calculate fibonacci numbers"):
+        """Test direct function call to the LLM service"""
+        print(f"Testing LLM service with prompt: {prompt}")
+        
+        # Create a request object
+        request = GenerateRequest(
+            prompt=prompt,
+            max_tokens=512,
+            temperature=0.7,
+            top_p=1.0, 
+            api_key_id="test-key"
+        )
+        
+        # Create a background tasks object
+        background_tasks = BackgroundTasks()
+        
+        try:
+            # Call the generate function directly
+            response = await generate(request, background_tasks, "test-key")
+            return response
+        except Exception as e:
+            print(f"Error calling generate: {str(e)}")
+            return None
+    
+    # Run the async function
+    response = asyncio.run(test_llm_service())
+    
+    # Display the response as formatted JSON
+    display(JSON(response))
+    
+    # Display the generated code
+    if response and response.get("choices"):
+        generated_code = response["choices"][0]["text"]
+        display(Markdown(f"## Generated Code\n```javascript\n{generated_code}\n```"))
+        
+        # You can also execute the code if it's Python
+        if "def " in generated_code and "```python" in generated_code:
+            print("\nExecuting generated Python code:")
+            # Extract Python code from markdown blocks if present
+            if "```python" in generated_code:
+                code_block = generated_code.split("```python")[1].split("```")[0]
+            else:
+                code_block = generated_code
+            
+            try:
+                exec(code_block)
+                print("Code executed successfully!")
+            except Exception as e:
+                print(f"Error executing code: {e}")
+except Exception as e:
+    print(f"Error importing app: {str(e)}")
+    print("\nTroubleshooting tips:")
+    print("1. Make sure the path to your LLM service is correct")
+    print("2. Check if app.py is accessible from the Jupyter environment")
+    print("3. Make sure all dependencies are installed: pip install fastapi uvicorn redis prometheus-client torch") 
