@@ -1,0 +1,148 @@
+
+version: 1.0
+
+pod:
+  name: qwen-32b-coder
+  image: runpod/stable-diffusion:web-automatic-base
+  container_disk: 50
+  volume_disk: 100
+  volume_mount_path: /workspace
+  ports:
+    - 8000:8000  # LLM API
+    - 8001:8001  # Prometheus metrics
+    - 9090:9090  # Prometheus
+    - 3000:3000  # Grafana
+  env:
+    - name: MODEL_NAME
+      value: "Qwen/Qwen-32B-Coder"
+    - name: MAX_BATCH_SIZE
+      value: "32"
+    - name: MAX_CONCURRENT_REQUESTS
+      value: "16"
+    - name: REDIS_HOST
+      value: "redis.internal"
+    - name: REDIS_PORT
+      value: "6379"
+
+gpu:
+  type: A100-80GB
+  count: 1
+  
+  autoscaling:
+    enabled: true
+    min_replicas: 2
+    max_replicas: 10
+    target_utilization: 80
+    scale_down_delay: 300  # 5 minutes
+    
+  high_availability:
+    enabled: true
+    zones:
+      - us-east
+      - us-west
+    node_selector:
+      runpod.io/stable: "true"
+
+networking:
+  vpc_enabled: true
+  private_networking: true
+  load_balancer:
+    enabled: true
+    type: application
+    health_check:
+      path: /health
+      port: 8000
+      interval: 30
+      timeout: 10
+      healthy_threshold: 2
+      unhealthy_threshold: 3
+
+storage:
+  type: ssd
+  size_gb: 100
+  backup:
+    enabled: true
+    schedule: "0 0 * * *"  # Daily backup at midnight
+    retention_days: 7
+
+monitoring:
+  prometheus:
+    enabled: true
+    retention_days: 15
+  grafana:
+    enabled: true
+    admin_password: "${GRAFANA_ADMIN_PASSWORD}"
+  alerts:
+    enabled: true
+    endpoints:
+      - type: email
+        address: "admin@example.com"
+      - type: slack
+        webhook: "${SLACK_WEBHOOK_URL}"
+    rules:
+      - name: high_latency
+        expr: "llm_request_latency_seconds > 5"
+        for: "5m"
+        severity: warning
+      - name: error_rate
+        expr: "rate(llm_requests_total{status='error'}[5m]) > 0.01"
+        for: "5m"
+        severity: critical
+      - name: pod_down
+        expr: "up == 0"
+        for: "1m"
+        severity: critical
+
+cost_optimization:
+  spot_instances:
+    enabled: false  # Disabled for reliability
+  reserved_instances:
+    enabled: true
+    term: "3_month"  # For 3-month uptime guarantee
+    payment_option: "all_upfront"
+
+deployment:
+  strategy: rolling_update
+  max_surge: 1
+  max_unavailable: 0
+  readiness_probe:
+    path: /health
+    port: 8000
+    initial_delay: 60
+    period: 10
+    timeout: 5
+    success_threshold: 1
+    failure_threshold: 3
+
+security:
+  network_policy:
+    enabled: true
+    ingress:
+      - from:
+          - pod_selector:
+              app: api-gateway
+        ports:
+          - protocol: TCP
+            port: 8000
+  secrets_management:
+    provider: runpod_secrets
+    secrets:
+      - name: API_KEYS
+        key: api_keys
+      - name: DATABASE_URL
+        key: database_url
+      - name: REDIS_PASSWORD
+        key: redis_password
+
+performance:
+  vllm_config:
+    tensor_parallel_size: 1
+    gpu_memory_utilization: 0.9
+    max_model_len: 8192
+    quantization: "awq"  # Quantization for better performance
+  redis_config:
+    maxmemory: "2gb"
+    maxmemory_policy: "allkeys-lru"
+  system_config:
+    cuda_visible_devices: "0"
+    numa_config: "interleaved=all"
