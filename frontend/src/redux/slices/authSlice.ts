@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { authApi } from '../../services/api';
+import { mockAuthApi as authApi } from '../../mockAuth';
 
 interface User {
   id: string;
@@ -28,9 +28,12 @@ export const login = createAsyncThunk(
   'auth/login',
   async ({ email, password }: { email: string; password: string }, { rejectWithValue }) => {
     try {
+      console.log('Attempting login with:', email, password);
       const response = await authApi.login(email, password);
+      console.log('Login response:', response.data);
       return response.data;
     } catch (error: any) {
+      console.error('Login error:', error);
       return rejectWithValue(error.response?.data?.message || 'Login failed');
     }
   }
