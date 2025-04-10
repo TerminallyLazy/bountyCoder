@@ -1,0 +1,16 @@
+# Enhancements Made to Admin Dashboard
+
+## Button Improvements
+- Added subtle lift effect on hover (translateY)
+- Enhanced glow and shadow effects for dark theme
+- Added pulse animation for primary buttons
+- Special '.action-button' class with gradient backgrounds
+- Added smooth transitions for all state changes
+
+## Card Improvements
+- Enhanced hover effects with z-index and transform
+- Added specific '.dashboard-card' class with:
+  - Gradient backgrounds based on theme
+  - Border highlight effects in dark theme
+  - Smooth transition animations
+  - Drop shadow variations for both themes

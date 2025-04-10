@@ -16,7 +16,9 @@ import {
   TextField,
   Switch,
   FormControlLabel,
-  Alert
+  Alert,
+  Box,
+  CircularProgress
 } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
 import { apiKeysApi } from '../services/api';
@@ -132,9 +134,18 @@ const ApiKeys: React.FC = () => {
   };
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-4">
-        <Typography variant="h4">
+    <Box sx={{ p: 2 }}>
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        mb: 4,
+        pb: 2,
+        borderBottom: (theme) => `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`
+      }}>
+        <Typography variant="h4" fontWeight="bold" sx={{ 
+          color: (theme) => theme.palette.mode === 'dark' ? 'white' : theme.palette.primary.main,
+        }}>
           API Keys
         </Typography>
         <Button 
@@ -142,69 +153,186 @@ const ApiKeys: React.FC = () => {
           color="primary" 
           startIcon={<AddIcon />}
           onClick={handleCreateDialogOpen}
+          className="action-button"
+          sx={{
+            fontWeight: 600,
+            px: 3,
+            py: 1,
+            borderRadius: '8px',
+            transition: 'all 0.3s ease',
+            boxShadow: (theme) => theme.palette.mode === 'dark'
+              ? '0 4px 10px rgba(124, 58, 237, 0.3)'
+              : '0 4px 10px rgba(59, 130, 246, 0.3)',
+            '&:hover': {
+              transform: 'translateY(-2px)',
+              boxShadow: (theme) => theme.palette.mode === 'dark'
+                ? '0 6px 15px rgba(124, 58, 237, 0.4), 0 0 10px rgba(139, 92, 246, 0.3)'
+                : '0 6px 15px rgba(59, 130, 246, 0.4)'
+            }
+          }}
         >
           Create API Key
         </Button>
-      </div>
+      </Box>
       
       {error && (
-        <Alert severity="error" className="mb-4">
+        <Alert 
+          severity="error" 
+          sx={{ 
+            mb: 4, 
+            borderRadius: 2,
+            boxShadow: '0 4px 10px rgba(239, 68, 68, 0.1)'
+          }}
+        >
           {error}
         </Alert>
       )}
       
-      <Paper>
+      <Paper 
+        elevation={3} 
+        sx={{ 
+          borderRadius: 3,
+          overflow: 'hidden',
+          transition: 'all 0.3s ease',
+          background: (theme) => theme.palette.mode === 'dark' 
+            ? 'linear-gradient(145deg, #1e293b, #1a2234)'
+            : 'white',
+          border: (theme) => theme.palette.mode === 'dark' 
+            ? '1px solid rgba(255, 255, 255, 0.03)'
+            : 'none',
+          '&:hover': {
+            boxShadow: (theme) => theme.palette.mode === 'dark'
+              ? '0 8px 25px rgba(0, 0, 0, 0.3), 0 0 10px rgba(139, 92, 246, 0.2)'
+              : '0 8px 25px rgba(0, 0, 0, 0.08)'
+          }
+        }}
+      >
         <TableContainer>
           <Table>
             <TableHead>
-              <TableRow>
-                <TableCell>Name</TableCell>
-                <TableCell>API Key</TableCell>
-                <TableCell>Rate Limit</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Created</TableCell>
-                <TableCell>Last Used</TableCell>
-                <TableCell>Actions</TableCell>
+              <TableRow sx={{ 
+                background: (theme) => theme.palette.mode === 'dark' 
+                  ? 'rgba(15, 23, 42, 0.6)'
+                  : 'rgba(243, 244, 246, 0.8)'
+              }}>
+                <TableCell sx={{ fontWeight: 'bold' }}>Name</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>API Key</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Rate Limit</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Created</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Last Used</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={7} align="center">Loading...</TableCell>
+                  <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                      <CircularProgress size={32} />
+                    </Box>
+                  </TableCell>
                 </TableRow>
               ) : apiKeys.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} align="center">No API keys found</TableCell>
+                  <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                    <Typography variant="body1" color="text.secondary">
+                      No API keys found
+                    </Typography>
+                  </TableCell>
                 </TableRow>
               ) : (
                 apiKeys.map((apiKey) => (
-                  <TableRow key={apiKey.id}>
+                  <TableRow 
+                    key={apiKey.id}
+                    sx={{ 
+                      transition: 'all 0.2s ease',
+                      '&:hover': { 
+                        background: (theme) => theme.palette.mode === 'dark' 
+                          ? 'rgba(255, 255, 255, 0.02)'
+                          : 'rgba(0, 0, 0, 0.01)'
+                      }
+                    }}
+                  >
                     <TableCell>{apiKey.name}</TableCell>
                     <TableCell>
-                      <code className="bg-gray-100 p-1 rounded">{apiKey.key.substring(0, 10)}...{apiKey.key.substring(apiKey.key.length - 5)}</code>
+                      <Box 
+                        component="code" 
+                        sx={{ 
+                          px: 1, 
+                          py: 0.5, 
+                          borderRadius: 1, 
+                          bgcolor: (theme) => theme.palette.mode === 'dark' 
+                            ? 'rgba(15, 23, 42, 0.5)'
+                            : 'rgba(243, 244, 246, 0.8)',
+                          fontFamily: 'monospace',
+                          fontSize: '0.875rem'
+                        }}
+                      >
+                        {apiKey.key.substring(0, 10)}...{apiKey.key.substring(apiKey.key.length - 5)}
+                      </Box>
                     </TableCell>
                     <TableCell>{apiKey.rateLimit} req/min</TableCell>
                     <TableCell>
-                      <span className={`px-2 py-1 rounded text-xs ${apiKey.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                      <Box 
+                        component="span" 
+                        sx={{ 
+                          px: 1.5, 
+                          py: 0.5, 
+                          borderRadius: 10, 
+                          fontSize: '0.75rem',
+                          fontWeight: 'medium',
+                          bgcolor: apiKey.isActive 
+                            ? (theme) => theme.palette.mode === 'dark' ? 'rgba(74, 222, 128, 0.2)' : 'rgba(16, 185, 129, 0.1)' 
+                            : (theme) => theme.palette.mode === 'dark' ? 'rgba(248, 113, 113, 0.2)' : 'rgba(239, 68, 68, 0.1)',
+                          color: apiKey.isActive 
+                            ? (theme) => theme.palette.mode === 'dark' ? 'rgb(74, 222, 128)' : 'rgb(16, 185, 129)'
+                            : (theme) => theme.palette.mode === 'dark' ? 'rgb(248, 113, 113)' : 'rgb(239, 68, 68)'
+                        }}
+                      >
                         {apiKey.isActive ? 'Active' : 'Inactive'}
-                      </span>
+                      </Box>
                     </TableCell>
                     <TableCell>{new Date(apiKey.createdAt).toLocaleDateString()}</TableCell>
                     <TableCell>{apiKey.lastUsed ? new Date(apiKey.lastUsed).toLocaleString() : 'Never'}</TableCell>
                     <TableCell>
-                      <Button 
-                        size="small" 
-                        onClick={() => handleEditDialogOpen(apiKey)}
-                      >
-                        Edit
-                      </Button>
-                      <Button 
-                        size="small" 
-                        color="error"
-                        onClick={() => handleDeleteApiKey(apiKey.id)}
-                      >
-                        Delete
-                      </Button>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Button 
+                          size="small" 
+                          variant="outlined"
+                          onClick={() => handleEditDialogOpen(apiKey)}
+                          sx={{
+                            borderRadius: '6px',
+                            transition: 'all 0.3s ease',
+                            '&:hover': {
+                              transform: 'translateY(-2px)',
+                              boxShadow: (theme) => theme.palette.mode === 'dark'
+                                ? '0 4px 10px rgba(139, 92, 246, 0.2)'
+                                : '0 4px 10px rgba(59, 130, 246, 0.1)'
+                            }
+                          }}
+                        >
+                          Edit
+                        </Button>
+                        <Button 
+                          size="small" 
+                          variant="outlined"
+                          color="error"
+                          onClick={() => handleDeleteApiKey(apiKey.id)}
+                          sx={{
+                            borderRadius: '6px',
+                            transition: 'all 0.3s ease',
+                            '&:hover': {
+                              transform: 'translateY(-2px)',
+                              boxShadow: (theme) => theme.palette.mode === 'dark'
+                                ? '0 4px 10px rgba(248, 113, 113, 0.2)'
+                                : '0 4px 10px rgba(239, 68, 68, 0.1)'
+                            }
+                          }}
+                        >
+                          Delete
+                        </Button>
+                      </Box>
                     </TableCell>
                   </TableRow>
                 ))
@@ -215,8 +343,20 @@ const ApiKeys: React.FC = () => {
       </Paper>
       
       {/* Create API Key Dialog */}
-      <Dialog open={openCreateDialog} onClose={handleDialogClose}>
-        <DialogTitle>Create API Key</DialogTitle>
+      <Dialog 
+        open={openCreateDialog} 
+        onClose={handleDialogClose}
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            boxShadow: (theme) => theme.palette.mode === 'dark'
+              ? '0 10px 35px rgba(0, 0, 0, 0.5), 0 0 15px rgba(139, 92, 246, 0.2)'
+              : '0 10px 35px rgba(0, 0, 0, 0.1)',
+            minWidth: '400px'
+          }
+        }}
+      >
+        <DialogTitle sx={{ pb: 1, fontWeight: 600 }}>Create API Key</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
@@ -227,6 +367,7 @@ const ApiKeys: React.FC = () => {
             fullWidth
             value={formData.name}
             onChange={handleInputChange}
+            sx={{ mt: 2, mb: 1 }}
           />
           <TextField
             margin="dense"
@@ -236,17 +377,63 @@ const ApiKeys: React.FC = () => {
             fullWidth
             value={formData.rateLimit}
             onChange={handleInputChange}
+            sx={{ mt: 1, mb: 1 }}
           />
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleDialogClose}>Cancel</Button>
-          <Button onClick={handleCreateApiKey} color="primary">Create</Button>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button 
+            onClick={handleDialogClose}
+            sx={{
+              borderRadius: '6px',
+              fontWeight: 500,
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'translateY(-2px)'
+              }
+            }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleCreateApiKey} 
+            variant="contained" 
+            color="primary"
+            sx={{
+              borderRadius: '6px',
+              fontWeight: 500,
+              px: 2,
+              transition: 'all 0.3s ease',
+              boxShadow: (theme) => theme.palette.mode === 'dark'
+                ? '0 4px 12px rgba(124, 58, 237, 0.3)'
+                : '0 4px 12px rgba(59, 130, 246, 0.2)',
+              '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: (theme) => theme.palette.mode === 'dark'
+                  ? '0 8px 16px rgba(124, 58, 237, 0.4)'
+                  : '0 8px 16px rgba(59, 130, 246, 0.25)'
+              }
+            }}
+          >
+            Create
+          </Button>
         </DialogActions>
       </Dialog>
       
-      {/* Edit API Key Dialog */}
-      <Dialog open={openEditDialog} onClose={handleDialogClose}>
-        <DialogTitle>Edit API Key</DialogTitle>
+      {/* Edit API Key Dialog - Similar styling as Create */}
+      <Dialog 
+        open={openEditDialog} 
+        onClose={handleDialogClose}
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            boxShadow: (theme) => theme.palette.mode === 'dark'
+              ? '0 10px 35px rgba(0, 0, 0, 0.5), 0 0 15px rgba(139, 92, 246, 0.2)'
+              : '0 10px 35px rgba(0, 0, 0, 0.1)',
+            minWidth: '400px'
+          }
+        }}
+      >
+        <DialogTitle sx={{ pb: 1, fontWeight: 600 }}>Edit API Key</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
@@ -257,6 +444,7 @@ const ApiKeys: React.FC = () => {
             fullWidth
             value={formData.name}
             onChange={handleInputChange}
+            sx={{ mt: 2, mb: 1 }}
           />
           <TextField
             margin="dense"
@@ -266,6 +454,7 @@ const ApiKeys: React.FC = () => {
             fullWidth
             value={formData.rateLimit}
             onChange={handleInputChange}
+            sx={{ mt: 1, mb: 2 }}
           />
           <FormControlLabel
             control={
@@ -279,12 +468,45 @@ const ApiKeys: React.FC = () => {
             label="Active"
           />
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleDialogClose}>Cancel</Button>
-          <Button onClick={handleUpdateApiKey} color="primary">Update</Button>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button 
+            onClick={handleDialogClose}
+            sx={{
+              borderRadius: '6px',
+              fontWeight: 500,
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'translateY(-2px)'
+              }
+            }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleUpdateApiKey} 
+            variant="contained" 
+            color="primary"
+            sx={{
+              borderRadius: '6px',
+              fontWeight: 500,
+              px: 2,
+              transition: 'all 0.3s ease',
+              boxShadow: (theme) => theme.palette.mode === 'dark'
+                ? '0 4px 12px rgba(124, 58, 237, 0.3)'
+                : '0 4px 12px rgba(59, 130, 246, 0.2)',
+              '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: (theme) => theme.palette.mode === 'dark'
+                  ? '0 8px 16px rgba(124, 58, 237, 0.4)'
+                  : '0 8px 16px rgba(59, 130, 246, 0.25)'
+              }
+            }}
+          >
+            Update
+          </Button>
         </DialogActions>
       </Dialog>
-    </div>
+    </Box>
   );
 };
 

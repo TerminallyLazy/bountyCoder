@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { TextField, Button, Typography, Box, Paper, Alert } from '@mui/material';
+import { TextField, Button, Typography, Box, Paper, Alert, useTheme } from '@mui/material';
 import { login, clearError } from '../redux/slices/authSlice';
 import { RootState } from '../redux/store';
+import { useThemeContext } from '../contexts/ThemeContext';
+import { Brightness4, Brightness7 } from '@mui/icons-material';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -11,7 +13,8 @@ const Login: React.FC = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { isLoading, error, isAuthenticated } = useSelector((state: RootState) => state.auth);
-
+  const theme = useTheme();
+  const { mode, toggleTheme } = useThemeContext();
   React.useEffect(() => {
     if (isAuthenticated) {
       navigate('/dashboard');
@@ -30,19 +33,44 @@ const Login: React.FC = () => {
       await dispatch(login({ email, password }) as any);
     }
   };
-
   return (
-    <Box className="flex items-center justify-center min-h-screen bg-gray-100">
-      <Paper className="p-8 w-full max-w-md">
-        <Typography variant="h4" className="mb-6 text-center font-bold">
+    <Box 
+      className="flex items-center justify-center min-h-screen" 
+      sx={{ 
+        bgcolor: 'background.default',
+        color: 'text.primary'
+      }}
+    >
+      <Paper 
+        className="p-8 w-full max-w-md"
+        sx={{ 
+          p: 4, 
+          maxWidth: 500, 
+          mx: 'auto',
+          bgcolor: 'background.paper', 
+          position: 'relative' 
+        }}
+      >
+        <Box sx={{ position: 'absolute', top: 10, right: 10 }}>
+          <Button 
+            onClick={toggleTheme}
+            startIcon={mode === 'dark' ? <Brightness7 /> : <Brightness4 />}
+            size="small"
+          >
+            {mode === 'dark' ? 'Light' : 'Dark'} Mode
+          </Button>
+        </Box>
+
+        <Typography variant="h4" className="mb-6 text-center font-bold" sx={{ mb: 2, color: 'primary.main' }}>
           Qwen 32B Coder API
         </Typography>
-        <Typography variant="h5" className="mb-6 text-center">
+        
+        <Typography variant="h5" className="mb-6 text-center" sx={{ mb: 3 }}>
           Admin Dashboard Login
         </Typography>
         
         {error && (
-          <Alert severity="error" className="mb-4">
+          <Alert severity="error" className="mb-4" sx={{ mb: 2 }}>
             {error}
           </Alert>
         )}
@@ -74,6 +102,7 @@ const Login: React.FC = () => {
             color="primary"
             fullWidth
             className="mt-4"
+            sx={{ mt: 3 }}
             disabled={isLoading}
           >
             {isLoading ? 'Logging in...' : 'Login'}

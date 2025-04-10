@@ -74,7 +74,7 @@ export async function checkRateLimit(apiKeyId: string): Promise<boolean> {
     
     await customRateLimiter.consume(apiKeyId);
     return true;
-  } catch (error) {
+  } catch (error: any) {
     if (error.name === 'RateLimiterRes') {
       return false;
     }
