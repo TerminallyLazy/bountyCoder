@@ -1,0 +1,100 @@
+
+version: 1.0
+
+instance:
+  name: qwen-32b-coder
+  type: gpu_1x_a100_80gb  # A100 80GB for optimal performance
+  region: us-east
+  os_image: lambda-stack-dl:latest
+  disk_size_gb: 100
+  
+  high_availability:
+    enabled: true
+    replicas: 2
+    regions:
+      - us-east
+      - us-west
+
+docker:
+  image: lambdalabs/llm-inference:latest
+  container_name: qwen-32b-coder
+  ports:
+    - 8000:8000  # LLM API
+    - 8001:8001  # Prometheus metrics
+  environment:
+    - MODEL_NAME=Qwen/Qwen-32B-Coder
+    - MAX_BATCH_SIZE=32
+    - MAX_CONCURRENT_REQUESTS=16
+    - REDIS_HOST=redis.internal
+    - REDIS_PORT=6379
+  volumes:
+    - /home/ubuntu/model-cache:/app/model-cache
+    - /home/ubuntu/logs:/app/logs
+  restart: always
+  runtime: nvidia
+  deploy:
+    resources:
+      reservations:
+        devices:
+          - driver: nvidia
+            count: 1
+            capabilities: [gpu]
+
+networking:
+  vpc_enabled: true
+  private_networking: true
+  load_balancer:
+    enabled: true
+    type: application
+    health_check:
+      path: /health
+      port: 8000
+      interval: 30
+      timeout: 10
+      healthy_threshold: 2
+      unhealthy_threshold: 3
+
+storage:
+  type: ssd
+  size_gb: 100
+  backup:
+    enabled: true
+    schedule: "0 0 * * *"  # Daily backup at midnight
+    retention_days: 7
+
+monitoring:
+  prometheus:
+    enabled: true
+    retention_days: 15
+  grafana:
+    enabled: true
+  alerts:
+    enabled: true
+    endpoints:
+      - type: email
+        address: "admin@example.com"
+      - type: slack
+        webhook: "${SLACK_WEBHOOK_URL}"
+
+scaling:
+  enabled: true
+  min_instances: 2
+  max_instances: 10
+  metrics:
+    - type: cpu
+      target_utilization: 70
+    - type: gpu
+      target_utilization: 80
+    - type: custom
+      name: requests_per_second
+      target_value: 100
+
+performance:
+  vllm_config:
+    tensor_parallel_size: 1
+    gpu_memory_utilization: 0.9
+    max_model_len: 8192
+    quantization: "awq"  # Quantization for better performance
+  system_config:
+    cuda_visible_devices: "0"
+    numa_config: "interleaved=all"
