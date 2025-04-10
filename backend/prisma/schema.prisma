@@ -1,0 +1,64 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String?
+  role      Role     @default(CUSTOMER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  apiKeys   ApiKey[]
+  usage     Usage[]
+}
+
+model ApiKey {
+  id           String    @id @default(uuid())
+  key          String    @unique
+  name         String
+  userId       String
+  user         User      @relation(fields: [userId], references: [id])
+  rateLimit    Int       @default(60) // Requests per minute
+  isActive     Boolean   @default(true)
+  lastUsed     DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  usage        Usage[]
+}
+
+model Usage {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  apiKeyId  String
+  apiKey    ApiKey   @relation(fields: [apiKeyId], references: [id])
+  tokens    Int
+  timestamp DateTime @default(now())
+  endpoint  String
+  success   Boolean  @default(true)
+}
+
+model LLMModel {
+  id          String   @id @default(uuid())
+  name        String
+  version     String
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum Role {
+  ADMIN
+  CUSTOMER
+}
